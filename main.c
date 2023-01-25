@@ -6,6 +6,7 @@
 #include "memory_system.h"
 #include "bit_functions.h"
 #include "cpu.h"
+#include "compiler.h"
 
 void my_memory_dump(int start_address, int num_bytes) {
     int start_boundary = start_address - (start_address % 8);
@@ -25,7 +26,7 @@ void my_step_n(int n){
     }
 }
 
-void my_show_regs(){
+void my_show_regs(void){
     for(int i = 0; i < 15; i++){
         printf("register[%02d]: %x\n",i, get_reg(i));
     }
@@ -34,10 +35,29 @@ void my_show_regs(){
 
 
 int main(int argc, char **argv) {
-    
-    load_memory("program1.txt");
-    set_reg(PC, 0x330);
-    my_step_n(75);
-    my_memory_dump(0x300, 100);
+    programInfo *progInfo;
+    if (argc == 2)
+    {
+        progInfo = compileProg(argv[1]);
+    }
+    else
+    {
+        //load_memory("program1.txt");
+        progInfo = compileProg("hello_world.dasm");
+    }
+    load_memory(progInfo->progName);
+    set_reg(PC, progInfo->progStart);
+    //my_step_n(75);
+    int stopped = 0;
+    int count = 0;
+    while (!stopped)
+    {
+        stopped = step();
+        if (count > 75)
+            stopped = 1;
+    }
+        
+        
+    my_memory_dump(progInfo->memStart, 200);
     my_show_regs();
 }

@@ -68,7 +68,7 @@ void load_memory(char *filename)
 	 * first is the address next are values
 	 */
 	FILE *f = fopen(filename,"r");
-	unsigned int addr;
+	unsigned int addr = 0;
 	//unsigned char val;
 	unsigned int val;
 	int count = 0;
@@ -85,6 +85,7 @@ void load_memory(char *filename)
 			memory_store_word(addr,val);
 			addr+=4;
 		}
+        printf("Addr: %x, Val: %x\n", addr, val);
 		count++;
 	}
 }

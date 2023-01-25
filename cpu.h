@@ -15,6 +15,7 @@
 #define BGT 14
 #define MOV 15
 #define BL  16
+#define SWI 17
 
 #define Z 1
 #define LT 2
@@ -43,7 +44,8 @@
 
 void set_reg(int reg, int value);
 int get_reg(int reg);
-int get_cpsr();
-void show_regs();
-void step();
-void step_n(int n);
+int get_cpsr(void);
+void show_regs(void);
+int step(void);
+int opcodeToHex(char *opcode);
+char *hexToOpcode(int hex);

@@ -12,7 +12,7 @@ void mem_put(unsigned int row_selected, unsigned int col_selected, unsigned char
 {
 	mem[bit_find(row_selected)][bit_find(col_selected)] = b;
 }
-void mem_dump()
+void mem_dump(void)
 {
 	for(int x=0;x<32;x++)
 	{

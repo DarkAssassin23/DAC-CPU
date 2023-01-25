@@ -1,11 +1,17 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "cpu.h"
 #include "memory_system.h"
 #include "bit_functions.h"
-#include <stdio.h>
-#include <stdlib.h>
 
 int registers[16];
 int cpsr = 0;
+int reg = 0;
+int destReg = 0;
+int address = 0;
+int moveType = 0;
 
 void set_reg(int reg, int value)
 {
@@ -15,61 +21,210 @@ int get_reg(int reg)
 {
 	return registers[reg];
 }
-int get_cpsr()
+int get_cpsr(void)
 {
 	return cpsr;
 }
-void show_regs()
+void show_regs(void)
 {
 	for(int x=0;x<16;x++)
 		printf("R%d: 0x%04x\n",x, registers[x]);
 }
-void step()
+
+void doPrint(void)
 {
+    int fileDescriptor = registers[0];
+    int strAddr = registers[1]+4;
+    int size = registers[2];
+    FILE *outstream;
+    switch (fileDescriptor)
+    {
+    case 1:
+        outstream = stdout;
+        break;
+    case 2:
+        outstream = stderr;
+        break;
+    default:
+        outstream = stdout;
+        break;
+    }
+
+    for (int x = 0; x <= size; x++)
+    {
+        // Need to adjsut this to print to the appropriate file descriptor
+        fprintf(outstream,"%c", memory_fetch((strAddr + x)));
+    }
+    printf("\n");
+}
+
+int handleSoftwareInterupt(int inst)
+{
+    switch (registers[7])
+    {
+    case 0x01:
+        printf("program exited with code: %d\n", registers[0]);
+        return 1;
+    case 0x04:
+        doPrint();
+        return 0;
+    default:
+        break;
+    }
+    return 0;
+}
+
+void loadImmediate(int inst)
+{
+    reg = inst >> 16 & 0xff;
+    int immediate = inst & 0xffff;
+    if (reg > 15)
+    {
+        printf("Register out of bounds");
+        exit(1);
+    }
+    registers[reg] = immediate;
+    printf("reg: %d, reg val: 0x%08x, immediate: 0x%04x\n", reg, registers[reg], immediate);
+    registers[PC] += 4;
+}
+
+void loadRegister(int inst)
+{
+    reg = inst >> 16 & 0xff;
+    address = inst & 0xffff;
+    if (address > 1023 || reg > 15)
+    {
+        printf("Address/Register out of bounds");
+        exit(1);
+    }
+    registers[reg] = memory_fetch_word(address);
+    printf("reg: %d, reg val: 0x%08x, address: 0x%04x\n", reg, registers[reg], address);
+    registers[PC] += 4;
+}
+
+void loadAddress(int inst)
+{
+    destReg = inst >> 16 & 0xf;
+    reg = inst >> 8 & 0xff;
+    int offset = inst & 0xff;
+    if (destReg > 15 || reg > 1023)
+    {
+        printf("Register out of bounds");
+        exit(1);
+    }
+    registers[destReg] = memory_fetch_word(registers[reg] + offset);
+    printf("Destination reg: %d, reg val: 0x%08x, base reg: 0x%04x offset: 0x%04x\n", destReg, registers[destReg], reg, offset);
+    registers[PC] += 4;
+}
+
+void compare(int reg1, int reg2, int byNumber)
+{
+    if (byNumber)
+    {
+        if (registers[reg1] == reg2)
+        {
+            bit_set(&cpsr, Z);
+            bit_clear(&cpsr, LT);
+            bit_clear(&cpsr, GT);
+            printf("%d is equal to %d\n", registers[reg1], reg2);
+        }
+        else if (registers[reg1]>reg2)
+        {
+            bit_set(&cpsr, GT);
+            bit_clear(&cpsr, Z);
+            bit_clear(&cpsr, LT);
+            printf("%d is greater than %d\n", registers[reg1], reg2);
+        }
+        else
+        {
+            bit_set(&cpsr, LT);
+            bit_clear(&cpsr, Z);
+            bit_clear(&cpsr, GT);
+            printf("%d is less than %d\n", registers[reg1], reg2);
+        }
+    }
+    else
+    {
+        if (registers[reg1] == registers[reg2])
+        {
+            bit_set(&cpsr, Z);
+            bit_clear(&cpsr, LT);
+            bit_clear(&cpsr, GT);
+            printf("%d is equal to %d\n", registers[reg1], registers[reg2]);
+        }
+        else if (registers[reg1]>registers[reg2])
+        {
+            bit_set(&cpsr, GT);
+            bit_clear(&cpsr, Z);
+            bit_clear(&cpsr, LT);
+            printf("%d is greater than %d\n", registers[reg1], registers[reg2]);
+        }
+        else
+        {
+            bit_set(&cpsr, LT);
+            bit_clear(&cpsr, Z);
+            bit_clear(&cpsr, GT);
+            printf("%d is less than %d\n", registers[reg1], registers[reg2]);
+        }
+    }
+}
+
+void handleMove(int inst)
+{
+    switch (moveType)
+    {
+    case 0:
+        reg = inst & 0xff;
+        if (reg > 15)
+        {
+            printf("Source register is out of bounds\n");
+            exit(1);
+        }
+        registers[destReg] = registers[reg];
+        printf("Destination reg: %d, reg val: 0x%08x, reg: %d\n", destReg, registers[destReg], reg);
+        if (destReg != PC)
+            registers[PC] += 4;
+        break;
+    case 1:
+        reg = inst >> 16 & 0xf;
+        int immediate = inst & 0xffff;
+        if (reg > 15)
+        {
+            printf("Register out of bounds");
+            exit(1);
+        }
+        registers[reg] = immediate;
+        printf("reg: %d, reg val: 0x%08x, immediate: 0x%04x\n", reg, registers[reg], immediate);
+        if (destReg != PC)
+            registers[PC] += 4;
+        break;
+    case 2:
+        loadAddress(inst);
+        break;
+    default:
+        break;
+
+    }
+
+}
+
+int step(void)
+{
+    int byNumber = 0;
 	int inst = memory_fetch_word(registers[PC]);
 	int opcode = inst >> 24;
 	printf("0x%08x\n", inst);
-	int reg = 0;
-	int destReg  = 0;
-	int address = 0;
+
 	switch(opcode)
 	{
 		case LDR:
-			reg = inst >> 16 & 0xff;
-			address = inst & 0xffff;
-			if(address > 1023 || reg > 15)
-			{
-				printf("Address/Register out of bounds");
-				exit(1);
-			}
-			registers[reg] = memory_fetch_word(address);
-			printf("reg: %d, reg val: 0x%x08x, address: 0x%04x\n", reg, registers[reg], address);
-			registers[PC] += 4;
+            loadRegister(inst);
 			break;
 		case LDI:
-			reg = inst >> 16 & 0xff;
-			int immediate = inst & 0xffff;
-			if(reg > 15)
-			{
-				printf("Register out of bounds");
-				exit(1);
-			}
-			registers[reg] = immediate;
-			printf("reg: %d, reg val: 0x%x08x, immediate: 0x%04x\n", reg, registers[reg], immediate);
-			registers[PC] += 4;
+            loadImmediate(inst);
 			break;
 		case LDX:
-			destReg = inst >> 16 & 0xff;
-			int offset = inst >> 8 & 0xff;
-			reg = inst & 0xff;
-			if(destReg > 15 || reg > 1023)
-			{
-				printf("Register out of bounds");
-				exit(1);
-			}
-			registers[destReg] = memory_fetch_word(registers[reg] + offset);
-			printf("Destination reg: %d, reg val: 0x%x08x, base reg: 0x%04x offset: 0x%04x\n", destReg, registers[destReg], reg, offset);
-			registers[PC] += 4;
+            loadAddress(inst);
 			break;
 		case STR:
 			reg = inst >> 16 & 0xff;
@@ -80,92 +235,111 @@ void step()
 				exit(1);
 			}
 			memory_store_word(address, registers[reg]);
-			printf("reg: %d, store val: 0x%x08x, address: 0x%04x\n", reg, registers[reg], address);
+			printf("reg: %d, store val: 0x%08x, address: 0x%04x\n", reg, registers[reg], address);
 			registers[PC] += 4;
 			break;
 		case ADD:
-			destReg = inst >> 16 & 0xff;
+            byNumber = inst >> 20 & 0xf;
+			destReg = inst >> 16 & 0xf;
 			int reg1 = inst >> 8 & 0xff;
 			int reg2 = inst & 0xff;
-			if(destReg > 15 || reg1 > 15 || reg2 > 15)
+			if(destReg > 15 || reg1 > 15 || (reg2 > 15 && !byNumber))
 			{
 				printf("Register out of bounds");
 				exit(1);
 			}
-			registers[destReg] = registers[reg1]+registers[reg2]; 
-			printf("Destination reg: %d, First reg: %d, Second reg: %d sum: %d\n", destReg, reg1, reg2, registers[destReg]);
-			registers[PC] += 4;
+            if (byNumber)
+            {
+                registers[destReg] = registers[reg1] + reg2;
+                printf("Destination reg: %d, First reg: %d, number: %d sum: %d\n", destReg, reg1, reg2, registers[destReg]);
+            }
+            else
+            {
+                registers[destReg] = registers[reg1] + registers[reg2];
+                printf("Destination reg: %d, First reg: %d, Second reg: %d sum: %d\n", destReg, reg1, reg2, registers[destReg]);
+            }
+    		registers[PC] += 4;
 			break;
 		case SUB:
-			destReg = inst >> 16 & 0xff;
+            byNumber = inst >> 20 & 0xf;
+			destReg = inst >> 16 & 0xf;
 			reg1 = inst >> 8 & 0xff;
 			reg2 = inst & 0xff;
-			if(destReg > 15 || reg1 > 15 || reg2 > 15)
+            if (destReg > 15 || reg1 > 15 || (reg2 > 15 && !byNumber))
 			{
 				printf("Register out of bounds");
 				exit(1);
 			}
-			registers[destReg] = registers[reg1]-registers[reg2]; 
-			printf("Destination reg: %d, First reg: %d, Second reg: %d diffrence: %d\n", destReg, reg1, reg2, registers[destReg]);
-			registers[PC] += 4;
+            if (byNumber)
+            {
+                registers[destReg] = registers[reg1] - reg2;
+                printf("Destination reg: %d, First reg: %d, number: %d difference: %d\n", destReg, reg1, reg2, registers[destReg]);
+            }
+            else
+            {
+                registers[destReg] = registers[reg1] - registers[reg2];
+                printf("Destination reg: %d, First reg: %d, Second reg: %d difference: %d\n", destReg, reg1, reg2, registers[destReg]);
+            }
+            registers[PC] += 4;
 			break;
 		case MUL:
-			destReg = inst >> 16 & 0xff;
+            byNumber = inst >> 20 & 0xf;
+			destReg = inst >> 16 & 0xf;
 			reg1 = inst >> 8 & 0xff;
 			reg2 = inst & 0xff;
-			if(destReg > 15 || reg1 > 15 || reg2 > 15)
+            if (destReg > 15 || reg1 > 15 || (reg2 > 15 && !byNumber))
 			{
 				printf("Register out of bounds");
 				exit(1);
 			}
-			registers[destReg] = registers[reg1]*registers[reg2]; 
-			printf("Destination reg: %d, First reg: %d, Second reg: %d product: %d\n", destReg, reg1, reg2, registers[destReg]);
-			registers[PC] += 4;
+            if (byNumber)
+            {
+                registers[destReg] = registers[reg1] * reg2;
+                printf("Destination reg: %d, First reg: %d, number: %d product: %d\n", destReg, reg1, reg2, registers[destReg]);
+            }
+            else
+            {
+                registers[destReg] = registers[reg1] * registers[reg2];
+                printf("Destination reg: %d, First reg: %d, Second reg: %d product: %d\n", destReg, reg1, reg2, registers[destReg]);
+            }
+            registers[PC] += 4;
 			break;
 		case DIV:
-			destReg = inst >> 16 & 0xff;
+            byNumber = inst >> 20 & 0xf;
+			destReg = inst >> 16 & 0xf;
 			reg1 = inst >> 8 & 0xff;
 			reg2 = inst & 0xff;
-			if(destReg > 15 || reg1 > 15 || reg2 > 15)
+            if (destReg > 15 || reg1 > 15 || (reg2 > 15 && !byNumber))
 			{
 				printf("Register out of bounds");
 				exit(1);
 			}
-			registers[destReg] = registers[reg1]/registers[reg2]; 
-			printf("Destination reg: %d, First reg: %d, Second reg: %d divdend: %d\n", destReg, reg1, reg2, registers[destReg]);
-			registers[PC] += 4;
+            if (byNumber)
+            {
+                registers[destReg] = registers[reg1] / reg2;
+                printf("Destination reg: %d, First reg: %d, number: %d quotient: %d\n", destReg, reg1, reg2, registers[destReg]);
+            }
+            else
+            {
+                registers[destReg] = registers[reg1] / registers[reg2];
+                printf("Destination reg: %d, First reg: %d, Second reg: %d quotient: %d\n", destReg, reg1, reg2, registers[destReg]);
+            }
+            registers[PC] += 4;
 			break;
 		case CMP:
-			destReg = inst >> 16 & 0xff;
-			reg1 = inst >> 8 & 0xff;
-			reg2 = inst & 0xff;
-			if(destReg > 15 || reg1 > 15 || reg2 > 15)
+            byNumber = inst >> 20 & 0xf;
+			reg1 = inst >> 16 & 0xf;
+            if (byNumber)
+                reg2 = inst & 0xffff;
+            else
+                reg2 = inst >> 8 & 0xff;
+            if (reg1 > 15 || (reg2 > 15 && !byNumber))
 			{
 				printf("Register out of bounds");
 				exit(1);
 			}
-			if(registers[reg1]==registers[reg2])
-			{
-				bit_set(&cpsr, Z);
-				bit_clear(&cpsr, LT);
-				bit_clear(&cpsr, GT);
-				printf("%d is equal to %d\n",registers[reg1],registers[reg2]);
-			}
-			else if(registers[reg1]>registers[reg2])
-			{
-				bit_set(&cpsr, GT);
-				bit_clear(&cpsr, Z);
-				bit_clear(&cpsr, LT);
-				printf("%d is greater than %d\n",registers[reg1],registers[reg2]);
-			}
-			else
-			{
-				bit_set(&cpsr, LT);
-				bit_clear(&cpsr, Z);
-				bit_clear(&cpsr, GT);
-				printf("%d is less than %d\n",registers[reg1],registers[reg2]);
-			}
-			//printf("Destination reg: %d, First reg: %d, Second reg: %d divdend: %d\n", destReg, reg1, reg2, registers[destReg]);
+            compare(reg1, reg2, byNumber);
+			
 			registers[PC] += 4;
 			break;
 		case B:
@@ -209,27 +383,110 @@ void step()
 				registers[PC] += 4;
 			break;
 		case MOV:
-			destReg = inst >> 16 & 0xff;
-			reg = inst & 0xff;
-			if(destReg > 15 || reg > 15)
-			{
-				printf("Register out of bounds");
-				exit(1);
-			}
-			registers[destReg] = registers[reg];
-			printf("Destination reg: %d, reg val: 0x%x08x, reg: 0x%04x\n", destReg, registers[destReg], reg);
-			if (destReg != PC)
-				registers[PC] += 4;
+            moveType = inst >> 20 & 0xf;
+            destReg = inst >> 16 & 0xf;
+            handleMove(inst);
 			break;
 		case BL:
 			registers[LR] = registers[PC] + 4;
+            printf("Link Register: 0x%x, Program Counter: 0x%x\n", registers[LR], registers[PC]);
 			address = inst & 0xffffff;
 			registers[PC] = address;
 			break;
+
+        case SWI:
+            //int immediate = inst & 0xffffff;
+            if (handleSoftwareInterupt(inst))
+                return 1;
+            registers[PC] += 4;
+            break;
+        default:
+            registers[PC] += 4;
+
 		
 	}
+    return 0;
 }
-void step_n(int n)
+int opcodeToHex(char *opcode)
 {
-	
+    if (strcmp(opcode, "ldr") == 0)
+        return LDR;
+    else if (strcmp(opcode, "ldi") == 0)
+        return LDI;
+    else if (strcmp(opcode, "ldx") == 0)
+        return LDX;
+    else if (strcmp(opcode, "str") == 0)
+        return STR;
+    else if (strcmp(opcode, "add") == 0)
+        return ADD;
+    else if (strcmp(opcode, "sub") == 0)
+        return SUB;
+    else if (strcmp(opcode, "mul") == 0)
+        return MUL;
+    else if (strcmp(opcode, "div") == 0)
+        return DIV;
+    else if (strcmp(opcode, "cmp") == 0)
+        return CMP;
+    else if (strcmp(opcode, "b") == 0)
+        return B;
+    else if (strcmp(opcode, "beq") == 0)
+        return BEQ;
+    else if (strcmp(opcode, "bne") == 0)
+        return BNE;
+    else if (strcmp(opcode, "blt") == 0)
+        return BLT;
+    else if (strcmp(opcode, "bgt") == 0)
+        return BGT;
+    else if (strcmp(opcode, "mov") == 0)
+        return MOV;
+    else if (strcmp(opcode, "bl") == 0)
+        return BL;
+    else if (strcmp(opcode, "swi") == 0)
+        return SWI;
+
+    return 0;
 }
+
+char *hexToOpcode(int hex)
+{
+    switch (hex)
+    {
+    case LDR:
+        return "ldr";
+    case LDI:
+        return "ldi";
+    case LDX:
+        return "ldx";
+    case STR:
+        return "str";
+    case ADD:
+        return "add";
+    case SUB:
+        return "sub";
+    case MUL:
+        return "mul";
+    case DIV:
+        return "div";
+    case CMP:
+        return "cmp";
+    case B:
+        return "b";
+    case BEQ:
+        return "beq";
+    case BNE:
+        return "bne";
+    case BLT:
+        return "blt";
+    case BGT:
+        return "bgt";
+    case MOV:
+        return "mov";
+    case BL:
+        return "bl";
+    case SWI:
+        return "swi";
+    default:
+        return "n/a";
+    }
+}
+
