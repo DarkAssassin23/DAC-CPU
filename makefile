@@ -1,4 +1,4 @@
-TARGET = cpuMemorySimulator
+TARGET = dac-cpu
 LIBS = -lm
 CC = gcc
 CFLAGS = -g -Wall
