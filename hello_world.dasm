@@ -1,0 +1,24 @@
+section .text
+
+print_hello_world:
+    mov r7, #4          // move 4 into r7
+    mov r0, #1          // move 1 into r0
+    ldi r1, =message    // load the address of message into r1
+    mov r2, #0xe        // move 14 (the length of message) into r2
+    swi #0x0            // call software interupt
+
+    mov pc, lr          // move the link register to the program counter to 
+                        // return back to the main function
+
+exit:
+    mov r7, #1	        // move 1 into r7
+    mov r0, #0x0	    // move 0 into r0
+    swi #0x0	        // call software interupt
+
+_start:
+    bl =print_hello_world
+    bl =exit
+
+section .data
+    message:
+        .ascii "hello, world!!!"
