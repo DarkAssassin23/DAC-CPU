@@ -56,7 +56,6 @@ void doPrint(void)
         // Need to adjsut this to print to the appropriate file descriptor
         fprintf(outstream,"%c", memory_fetch((strAddr + x)));
     }
-    printf("\n");
 }
 
 int handleSoftwareInterupt(int inst)
