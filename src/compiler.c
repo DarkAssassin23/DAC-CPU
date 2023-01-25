@@ -5,6 +5,7 @@
 
 #include "compiler.h"
 #include "cpu.h"
+#include "shared.h"
 #include "linkedList.h"
 
 

@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "cpu.h"
+#include "shared.h"
 #include "memory_system.h"
 #include "bit_functions.h"
 

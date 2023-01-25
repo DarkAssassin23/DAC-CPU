@@ -6,6 +6,7 @@
 #include "memory.h"
 #include "memory_system.h"
 #include "bit_functions.h"
+#include "shared.h"
 #include "cpu.h"
 #include "compiler.h"
 
@@ -49,7 +50,7 @@ int main(int argc, char **argv) {
                 program = i;
         }
     }
-    if (argc >= 2)
+    if (argc >= 2 && program != 0)
         progInfo = compileProg(argv[program]);
 
     else

@@ -2,7 +2,7 @@
 #include <string.h>
 #include "memory_system.h"
 
-#include "cpu.h"
+#include "shared.h"
 #include "memory.h"
 #include "decoder.h"
 

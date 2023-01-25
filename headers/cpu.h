@@ -42,8 +42,6 @@
 #define R14 14
 #define R15 15
 
-static int verbose = 0;
-
 void set_reg(int reg, int value);
 int get_reg(int reg);
 int get_cpsr(void);
