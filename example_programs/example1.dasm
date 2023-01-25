@@ -4,10 +4,10 @@
 section .text
 
 do_nothing:
-    add r0, r0, #2      // Adds 2 to r0 and stores it in r0
-    cmp r0, #8          // compare r0 to 8
-    blt =do_nothing     // if r0 is less than 8, loop back
-    mov pc, lr          // if r0 is >= 8, return to main
+    add r5, r5, #2      // Adds 2 to r5 and stores it in r5
+    cmp r5, #8          // compare r5 to 8
+    blt =do_nothing     // if r5 is less than 8, loop back
+    mov pc, lr          // if r5 is >= 8, return to main
 
 _start:
     bl =do_nothing
