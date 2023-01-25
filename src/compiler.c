@@ -92,13 +92,19 @@ int getNumberVal(const char *line, int pos)
     return (int)strtol(num, NULL, base);
 }
 
-void printSubstr(const char *line, int start, int end)
+char* getSubstr(const char *line, int start, int end)
 {
+    if(end<start)
+        return NULL;
+    char* substr = malloc(sizeof(char)*((end-start) +1));
+    int i = 0;
     for (int x = start; x < end; x++)
     {
-        printf("%c", line[x]);
+        substr[i] = line[x];
+        i++;
     }
-    printf("\n");
+    substr[i] = '\0';
+    return substr;
 }
 
 char *removeComments(char *line)
@@ -278,7 +284,8 @@ int getMemStart(char *buffer)
     char *line = malloc(sizeof(char)*(pos-start) + 1);
     strncpy(line, buffer+start, (pos-start));
     line[pos] = '\0';
-    printf("First line: %s\n", line);
+    if(verbose)
+        printf("First line: %s\n", line);
     return (int)strtol(line, NULL, 16);
 }
 
@@ -466,7 +473,8 @@ void storeFunctionNames(char *buffer)
             if (noWhiteSpace[strlen(noWhiteSpace) - 2] == ':')
             {
                 //addr -= 4;
-                printf("Function: %s", noWhiteSpace);
+                if(verbose)
+                    printf("Function: %s", noWhiteSpace);
                 storeFunction(noWhiteSpace);
                 lineParsed = 1;
                 addr += 4;
@@ -622,8 +630,8 @@ void assemblyToHexInstructions(char *buffer, FILE *fout)
             char *hexInst = asmToHex(noWhiteSpace);
             // Add new instruction to output file
             fprintf(fout, "%s\n", hexInst);
-
-            printf("Instruction: %s, Assembly: %s", hexInst, noWhiteSpace);
+            if (verbose)
+                printf("Instruction: %s, Assembly: %s", hexInst, noWhiteSpace);
 
             //free(noWhiteSpace);
             addr += 4;
@@ -661,7 +669,8 @@ programInfo *compileProg(char *programFile)
         buffer = strlwr(buffer);
 
         int memoryStart = getMemStart(buffer);
-        printf("Mem start: %d\n", memoryStart);
+        if(verbose)
+            printf("Mem start: %d\n", memoryStart);
         if (memoryStart == -1)
             memoryStart = START_ADDR;
 

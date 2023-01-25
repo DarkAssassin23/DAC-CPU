@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
 #include "decoder.h"
 #include "memory.h"
 #include "memory_system.h"
@@ -36,15 +37,23 @@ void my_show_regs(void){
 
 int main(int argc, char **argv) {
     programInfo *progInfo;
-    if (argc == 2)
-    {
-        progInfo = compileProg(argv[1]);
+    int program = 0;
+    for (int i = 1; i < argc; i++)
+    {  
+        if (i != argc)
+        {
+            if (strcmp(argv[i], "-v") == 0)
+                verbose = 1;
+            char *sub1 = getSubstr(argv[i], strlen(argv[i])-5, strlen(argv[i]));
+            if (strcmp(sub1,".dasm")==0)
+                program = i;
+        }
     }
+    if (argc >= 2)
+        progInfo = compileProg(argv[program]);
+
     else
-    {
-        //load_memory("program1.txt");
-        progInfo = compileProg("hello_world.dasm");
-    }
+        progInfo = compileProg("example_programs/hello_world.dasm");
     load_memory(progInfo->progName);
     set_reg(PC, progInfo->progStart);
     //my_step_n(75);
@@ -56,8 +65,10 @@ int main(int argc, char **argv) {
         if (count > 75)
             stopped = 1;
     }
-        
-        
-    my_memory_dump(progInfo->memStart, 200);
-    my_show_regs();
+    if(verbose)
+    {
+        my_memory_dump(progInfo->memStart, 200);
+        my_show_regs();
+    }      
+
 }

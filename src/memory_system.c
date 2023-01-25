@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "memory_system.h"
+
+#include "cpu.h"
 #include "memory.h"
 #include "decoder.h"
 
@@ -85,7 +87,8 @@ void load_memory(char *filename)
 			memory_store_word(addr,val);
 			addr+=4;
 		}
-        printf("Addr: %x, Val: %x\n", addr, val);
+		if(verbose)
+        	printf("Addr: %x, Val: %x\n", addr, val);
 		count++;
 	}
 }

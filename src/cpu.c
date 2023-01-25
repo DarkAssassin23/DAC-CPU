@@ -63,7 +63,8 @@ int handleSoftwareInterupt(int inst)
     switch (registers[7])
     {
     case 0x01:
-        printf("program exited with code: %d\n", registers[0]);
+        if(verbose)
+            printf("program exited with code: %d\n", registers[0]);
         return 1;
     case 0x04:
         doPrint();
@@ -84,7 +85,8 @@ void loadImmediate(int inst)
         exit(1);
     }
     registers[reg] = immediate;
-    printf("reg: %d, reg val: 0x%08x, immediate: 0x%04x\n", reg, registers[reg], immediate);
+    if(verbose)
+        printf("reg: %d, reg val: 0x%08x, immediate: 0x%04x\n", reg, registers[reg], immediate);
     registers[PC] += 4;
 }
 
@@ -98,7 +100,8 @@ void loadRegister(int inst)
         exit(1);
     }
     registers[reg] = memory_fetch_word(address);
-    printf("reg: %d, reg val: 0x%08x, address: 0x%04x\n", reg, registers[reg], address);
+    if(verbose)
+        printf("reg: %d, reg val: 0x%08x, address: 0x%04x\n", reg, registers[reg], address);
     registers[PC] += 4;
 }
 
@@ -113,7 +116,8 @@ void loadAddress(int inst)
         exit(1);
     }
     registers[destReg] = memory_fetch_word(registers[reg] + offset);
-    printf("Destination reg: %d, reg val: 0x%08x, base reg: 0x%04x offset: 0x%04x\n", destReg, registers[destReg], reg, offset);
+    if(verbose)
+        printf("Destination reg: %d, reg val: 0x%08x, base reg: 0x%04x offset: 0x%04x\n", destReg, registers[destReg], reg, offset);
     registers[PC] += 4;
 }
 
@@ -126,21 +130,24 @@ void compare(int reg1, int reg2, int byNumber)
             bit_set(&cpsr, Z);
             bit_clear(&cpsr, LT);
             bit_clear(&cpsr, GT);
-            printf("%d is equal to %d\n", registers[reg1], reg2);
+            if(verbose)
+                printf("%d is equal to %d\n", registers[reg1], reg2);
         }
         else if (registers[reg1]>reg2)
         {
             bit_set(&cpsr, GT);
             bit_clear(&cpsr, Z);
             bit_clear(&cpsr, LT);
-            printf("%d is greater than %d\n", registers[reg1], reg2);
+            if(verbose)
+                printf("%d is greater than %d\n", registers[reg1], reg2);
         }
         else
         {
             bit_set(&cpsr, LT);
             bit_clear(&cpsr, Z);
             bit_clear(&cpsr, GT);
-            printf("%d is less than %d\n", registers[reg1], reg2);
+            if(verbose)
+                printf("%d is less than %d\n", registers[reg1], reg2);
         }
     }
     else
@@ -150,21 +157,24 @@ void compare(int reg1, int reg2, int byNumber)
             bit_set(&cpsr, Z);
             bit_clear(&cpsr, LT);
             bit_clear(&cpsr, GT);
-            printf("%d is equal to %d\n", registers[reg1], registers[reg2]);
+            if(verbose)
+                printf("%d is equal to %d\n", registers[reg1], registers[reg2]);
         }
         else if (registers[reg1]>registers[reg2])
         {
             bit_set(&cpsr, GT);
             bit_clear(&cpsr, Z);
             bit_clear(&cpsr, LT);
-            printf("%d is greater than %d\n", registers[reg1], registers[reg2]);
+            if(verbose)
+                printf("%d is greater than %d\n", registers[reg1], registers[reg2]);
         }
         else
         {
             bit_set(&cpsr, LT);
             bit_clear(&cpsr, Z);
             bit_clear(&cpsr, GT);
-            printf("%d is less than %d\n", registers[reg1], registers[reg2]);
+            if(verbose)
+                printf("%d is less than %d\n", registers[reg1], registers[reg2]);
         }
     }
 }
@@ -181,7 +191,8 @@ void handleMove(int inst)
             exit(1);
         }
         registers[destReg] = registers[reg];
-        printf("Destination reg: %d, reg val: 0x%08x, reg: %d\n", destReg, registers[destReg], reg);
+        if(verbose)
+            printf("Destination reg: %d, reg val: 0x%08x, reg: %d\n", destReg, registers[destReg], reg);
         if (destReg != PC)
             registers[PC] += 4;
         break;
@@ -194,7 +205,8 @@ void handleMove(int inst)
             exit(1);
         }
         registers[reg] = immediate;
-        printf("reg: %d, reg val: 0x%08x, immediate: 0x%04x\n", reg, registers[reg], immediate);
+        if(verbose)
+            printf("reg: %d, reg val: 0x%08x, immediate: 0x%04x\n", reg, registers[reg], immediate);
         if (destReg != PC)
             registers[PC] += 4;
         break;
@@ -213,7 +225,8 @@ int step(void)
     int byNumber = 0;
 	int inst = memory_fetch_word(registers[PC]);
 	int opcode = inst >> 24;
-	printf("0x%08x\n", inst);
+    if(verbose)
+	    printf("0x%08x\n", inst);
 
 	switch(opcode)
 	{
@@ -235,7 +248,8 @@ int step(void)
 				exit(1);
 			}
 			memory_store_word(address, registers[reg]);
-			printf("reg: %d, store val: 0x%08x, address: 0x%04x\n", reg, registers[reg], address);
+            if(verbose)
+			    printf("reg: %d, store val: 0x%08x, address: 0x%04x\n", reg, registers[reg], address);
 			registers[PC] += 4;
 			break;
 		case ADD:
@@ -251,12 +265,14 @@ int step(void)
             if (byNumber)
             {
                 registers[destReg] = registers[reg1] + reg2;
-                printf("Destination reg: %d, First reg: %d, number: %d sum: %d\n", destReg, reg1, reg2, registers[destReg]);
+                if(verbose)
+                    printf("Destination reg: %d, First reg: %d, number: %d sum: %d\n", destReg, reg1, reg2, registers[destReg]);
             }
             else
             {
                 registers[destReg] = registers[reg1] + registers[reg2];
-                printf("Destination reg: %d, First reg: %d, Second reg: %d sum: %d\n", destReg, reg1, reg2, registers[destReg]);
+                if(verbose)
+                    printf("Destination reg: %d, First reg: %d, Second reg: %d sum: %d\n", destReg, reg1, reg2, registers[destReg]);
             }
     		registers[PC] += 4;
 			break;
@@ -273,12 +289,14 @@ int step(void)
             if (byNumber)
             {
                 registers[destReg] = registers[reg1] - reg2;
-                printf("Destination reg: %d, First reg: %d, number: %d difference: %d\n", destReg, reg1, reg2, registers[destReg]);
+                if(verbose)
+                    printf("Destination reg: %d, First reg: %d, number: %d difference: %d\n", destReg, reg1, reg2, registers[destReg]);
             }
             else
             {
                 registers[destReg] = registers[reg1] - registers[reg2];
-                printf("Destination reg: %d, First reg: %d, Second reg: %d difference: %d\n", destReg, reg1, reg2, registers[destReg]);
+                if(verbose)
+                    printf("Destination reg: %d, First reg: %d, Second reg: %d difference: %d\n", destReg, reg1, reg2, registers[destReg]);
             }
             registers[PC] += 4;
 			break;
@@ -295,12 +313,14 @@ int step(void)
             if (byNumber)
             {
                 registers[destReg] = registers[reg1] * reg2;
-                printf("Destination reg: %d, First reg: %d, number: %d product: %d\n", destReg, reg1, reg2, registers[destReg]);
+                if(verbose)
+                    printf("Destination reg: %d, First reg: %d, number: %d product: %d\n", destReg, reg1, reg2, registers[destReg]);
             }
             else
             {
                 registers[destReg] = registers[reg1] * registers[reg2];
-                printf("Destination reg: %d, First reg: %d, Second reg: %d product: %d\n", destReg, reg1, reg2, registers[destReg]);
+                if(verbose)
+                    printf("Destination reg: %d, First reg: %d, Second reg: %d product: %d\n", destReg, reg1, reg2, registers[destReg]);
             }
             registers[PC] += 4;
 			break;
@@ -317,12 +337,14 @@ int step(void)
             if (byNumber)
             {
                 registers[destReg] = registers[reg1] / reg2;
-                printf("Destination reg: %d, First reg: %d, number: %d quotient: %d\n", destReg, reg1, reg2, registers[destReg]);
+                if(verbose)
+                    printf("Destination reg: %d, First reg: %d, number: %d quotient: %d\n", destReg, reg1, reg2, registers[destReg]);
             }
             else
             {
                 registers[destReg] = registers[reg1] / registers[reg2];
-                printf("Destination reg: %d, First reg: %d, Second reg: %d quotient: %d\n", destReg, reg1, reg2, registers[destReg]);
+                if(verbose)
+                    printf("Destination reg: %d, First reg: %d, Second reg: %d quotient: %d\n", destReg, reg1, reg2, registers[destReg]);
             }
             registers[PC] += 4;
 			break;
@@ -389,7 +411,8 @@ int step(void)
 			break;
 		case BL:
 			registers[LR] = registers[PC] + 4;
-            printf("Link Register: 0x%x, Program Counter: 0x%x\n", registers[LR], registers[PC]);
+            if(verbose)
+                printf("Link Register: 0x%x, Program Counter: 0x%x\n", registers[LR], registers[PC]);
 			address = inst & 0xffffff;
 			registers[PC] = address;
 			break;

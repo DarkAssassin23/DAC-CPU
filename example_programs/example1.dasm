@@ -1,3 +1,6 @@
+// Make sure to run this with verbose mode on 
+// (tacking on -v) to actually see the registers
+// and memory change otherwise nothing shows up
 section .text
 
 do_nothing:
