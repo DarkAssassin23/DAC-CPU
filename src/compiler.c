@@ -494,6 +494,26 @@ void storeFunctionNames(char *buffer)
     }
 }
 
+char handelEscapeChars(char *line, int pos)
+{
+    // Not inclusive yet
+    switch(nextChar(line,pos))
+    {
+        case 'n':
+            return '\n';
+        case '0':
+            return '\0';
+        case 't':
+            return '\t';
+        case '\\':
+            return '\\';
+        case 'r':
+            return '\r';
+        default:
+            return '\n';
+    }
+}
+
 void handleDataSectionAssembly(char *line, FILE *fout)
 {
     int hexInst = 0;
@@ -509,16 +529,28 @@ void handleDataSectionAssembly(char *line, FILE *fout)
         //printf("\n");
         int pos = 0;
         int count = 0;
+        int skipNext = 0;
         while (data[pos] != '\0')
         {
-            if (count % 4 == 0 && count != 0)
+            if(!skipNext)
             {
-                fprintf(fout, "0x%08x\n", hexInst);
-                count = 0;
-                hexInst = 0;
+                if (count % 4 == 0 && count != 0)
+                {
+                    fprintf(fout, "0x%08x\n", hexInst);
+                    count = 0;
+                    hexInst = 0;
+                }
+                if(data[pos]=='\\' && prevChar(data, pos)!='\\')
+                {
+                    data[pos] = handelEscapeChars(data, pos);
+                    skipNext = 1;
+                }
+                else
+                    skipNext = 0;
+
+                hexInst |= data[pos] << getBitShift(count);
+                count++;
             }
-            hexInst |= data[pos] << getBitShift(count);
-            count++;
             pos++;
         }
         if (hexInst != 0)
