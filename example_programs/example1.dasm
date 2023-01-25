@@ -1,0 +1,14 @@
+section .text
+
+do_nothing:
+    add r0, r0, #2      // Adds 2 to r0 and stores it in r0
+    cmp r0, #8          // compare r0 to 8
+    blt =do_nothing     // if r0 is less than 8, loop back
+    mov pc, lr          // if r0 is >= 8, return to main
+
+_start:
+    bl =do_nothing
+    // exit program
+    mov r7, #1	        // move 1 into r7
+    mov r0, #0x0	    // move 0 into r0
+    swi #0x0	        // call software interupt
