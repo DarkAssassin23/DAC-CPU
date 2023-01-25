@@ -21,5 +21,5 @@ Once you build the executable with the provided makefile, simply pass the
 To see what is going on under the hood and in each register and at each
 memory address, add the -v (verbose) flag
 ```bash
-./dac-cpu example_programs/example1.dasm
+./dac-cpu example_programs/example1.dasm -v
 ```
