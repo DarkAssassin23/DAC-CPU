@@ -1,3 +1,5 @@
+#pragma once
+
 void memory_store(int address, unsigned char value);
 unsigned char memory_fetch(int address);
 unsigned int memory_fetch_word(int address);

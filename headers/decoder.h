@@ -1,3 +1,5 @@
+#pragma once
+
 unsigned int decoder(unsigned char b);
 
 #define DECODER_BITMASK 0x1f

@@ -1,3 +1,4 @@
+#pragma once
 
 #define LDR 1
 #define LDI 2
@@ -41,6 +42,7 @@
 #define R14 14
 #define R15 15
 
+static int verbose = 0;
 
 void set_reg(int reg, int value);
 int get_reg(int reg);
