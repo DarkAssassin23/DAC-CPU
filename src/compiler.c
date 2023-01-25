@@ -147,8 +147,6 @@ char *removeExcessWhiteSpace(char* line)
     int pos = 0;
     int resultIndex = 0;
     int charFound = 0;
-    char *result = malloc(sizeof(char)*strlen(line));
-
     while (line[pos] != '\n' && line[pos] != '\0')
     {
         if (!isWhiteSpaceChar(line[pos]) && !charFound)
@@ -156,7 +154,7 @@ char *removeExcessWhiteSpace(char* line)
 
         if (!(line[pos] == ' ' && prevChar(line, pos) == ' ') && charFound)
         {
-            result[resultIndex] = line[pos];
+            line[resultIndex] = line[pos];
             resultIndex++;
         }
 
@@ -164,19 +162,19 @@ char *removeExcessWhiteSpace(char* line)
     }
     // Ensure the line neds in a newline followed by
     // a null terminator.
-    if(prevChar(result, resultIndex)==' ')
+    if(prevChar(line, resultIndex)==' ')
     {
-        result[resultIndex-1] = '\n';
-        result[resultIndex] = '\0';
+        line[resultIndex-1] = '\n';
+        line[resultIndex] = '\0';
     }
     else
     {
-        result[resultIndex] = '\n';
-        result[resultIndex+1] = '\0';
+        line[resultIndex] = '\n';
+        line[resultIndex+1] = '\0';
     }
 
 
-    return result;
+    return line;
 }
 
 void removeCarrigeReturn(char* line)

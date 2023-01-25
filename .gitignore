@@ -1,3 +1,5 @@
 *.o
 obj/
 dac-cpu
+.DS_Store
+._*
