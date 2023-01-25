@@ -2,7 +2,7 @@
 
 About
 --------
-The Dark Assassin Core CPU (DAC-CPU) is a CPU based of
+The Dark Assassin Core CPU (DAC-CPU) is a CPU inspired
 the ARM architecture. This repo simulates how a the CPU works
 and interacts with memory. Example programs written in its 
 assembly to test the functionality can be found in the
