@@ -1,7 +1,19 @@
-# CPU Memory Simulator
+# DAC-CPU
 
 About
 --------
-- This project is designed to simulate how a CPU and Memory work
-- An example program to test the functionality is included in the repo
-- CPU instructions are meant to mimic that of an ARM CPU
+The Dark Assassin Core CPU (DAC-CPU) is a CPU based of
+the ARM architecture. This repo simulates how a the CPU works
+and interacts with memory. Example programs written in its 
+assembly to test the functionality can be found in the
+<code>example_programs</code> folder of 
+this repo.
+
+
+Usage
+--------
+Once you build the executable with the provided makefile, simply pass the 
+<code>.dasm</code> file of your choice as an argument
+```bash
+./dac-cpu example_programs/hello_world.dasm
+```
