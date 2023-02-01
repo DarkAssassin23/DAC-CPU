@@ -35,8 +35,8 @@ void my_show_regs(void){
     printf("register[%02d]: %x\n",PC, get_reg(PC));
 }
 
-
-int main(int argc, char **argv) {
+int main(int argc, char **argv) 
+{
     programInfo *progInfo;
     int program = 0;
     for (int i = 1; i < argc; i++)
@@ -55,6 +55,7 @@ int main(int argc, char **argv) {
 
     else
         progInfo = compileProg("example_programs/hello_world.dasm");
+
     load_memory(progInfo->progName);
     set_reg(PC, progInfo->progStart);
     //my_step_n(75);
@@ -71,5 +72,5 @@ int main(int argc, char **argv) {
         my_memory_dump(progInfo->memStart, 200);
         my_show_regs();
     }      
-
+    return 0;
 }

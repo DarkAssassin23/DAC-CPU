@@ -396,7 +396,42 @@ char *parseDataArg(char *line)
     return argument;
 }
 
-char *getDataFromArg(char *line, char* argument)
+void handelArrayData(char *line, char *argument, FILE *fout)
+{
+    if(strcmp(argument, ".iarr ") == 0)
+    {
+        int startPos = 6;
+        // Doesn't allow for elements on multiple lines
+        // isn't exactly ideal but this is just as a proof of concept
+        while(line[startPos] != '{' && line[startPos] != '\n')
+            startPos++;
+        startPos++;
+        int pos = startPos;
+        while(line[pos] != '}' && line[pos] != '\n')
+        {
+            int digitFound = 0;
+            while(line[pos] != ',' && line[pos] != '}' && line[pos] != '\n')
+            {
+                if(isdigit((unsigned char)line[pos]) && !digitFound)
+                {
+                    startPos = pos;
+                    digitFound = 1;
+                }
+                pos++;
+            }
+
+            char *num = getSubstr(line, startPos, pos);
+            int base = 10;
+            if(num[0]=='0' && nextChar(num, 0) == 'x')
+                base = 16;
+            int arrVal = (int)strtol(num, NULL, base);
+            fprintf(fout, "0x%08x\n", arrVal);
+            pos++;
+        }
+    }
+}
+
+char *getDataFromArg(char *line, char *argument)
 {
     if (strcmp(argument, ".ascii") == 0)
     {
@@ -409,7 +444,35 @@ char *getDataFromArg(char *line, char* argument)
     }
     else if (strcmp(argument, ".skip ") == 0)
         return line + 6;
-
+    else if(strcmp(argument, ".iarr ") == 0)
+    {
+        int elements = 0;
+        int startPos = 6;
+        // Buggy, needs to be more fleshed out
+        // this is just as a proof of concept
+        while(line[startPos] != '{' && line[startPos] != '\n')
+            startPos++;
+        startPos++;
+        int pos = startPos;
+        while(line[pos] != '}' && line[pos] != '\n')
+        {
+            int digitFound = 0;
+            while(line[pos] != ',' && line[pos] != '}' && line[pos] != '\n')
+            {
+                if(isdigit((unsigned char)line[pos]) && !digitFound)
+                {
+                    startPos = pos;
+                    digitFound = 1;
+                    elements++;
+                }
+                pos++;
+            }
+            pos++;
+        }
+        char *result = malloc(sizeof(int));
+        snprintf(result, sizeof(int), "%d", elements);
+        return result;
+    }
     return "\0";
 }
 
@@ -429,6 +492,10 @@ int handleDataSectionFunction(char *line)
     else if (strcmp(arg, ".skip ") == 0)
     {
         addrAdvance = (int)strtol(data, NULL, 10); //* 4;
+    }
+    else if (strcmp(arg, ".iarr ") == 0)
+    {
+        addrAdvance = (int)strtol(data, NULL, 10) * 4;
     }
 
     return addrAdvance;
@@ -564,6 +631,11 @@ void handleDataSectionAssembly(char *line, FILE *fout)
         addr += emptyBytes;
         for (int x = emptyBytes; x > 0;x-=4)
             fprintf(fout, "0x%08x\n", hexInst);
+    }
+    else if (strcmp(arg, ".iarr ") ==0)
+    {
+        handelArrayData(line, arg, fout);
+        addr+= (int)strtol(data, NULL, 10) * 4;
     }
     else
     {
@@ -721,7 +793,10 @@ programInfo *compileProg(char *programFile)
         fclose(fout);
     }
     else
+    {
         perror(programFile);
+        exit(EXIT_FAILURE);
+    }
 
     return progInfo;
 }
