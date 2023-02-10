@@ -745,9 +745,6 @@ void assemblyToHexInstructions(char *buffer, FILE *fout)
     }
 }
 
-// TODO: Need to figure out what to do
-// with the integers at the beginning of the program in regards to 
-// how to represent them and what not
 programInfo *compileProg(char *programFile)
 {
     programInfo *progInfo = malloc(sizeof(programInfo));
