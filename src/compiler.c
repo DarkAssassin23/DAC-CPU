@@ -160,7 +160,7 @@ char *removeExcessWhiteSpace(char* line)
 
         pos++;
     }
-    // Ensure the line neds in a newline followed by
+    // Ensure the line ends in a newline followed by
     // a null terminator.
     if(prevChar(line, resultIndex)==' ')
     {
